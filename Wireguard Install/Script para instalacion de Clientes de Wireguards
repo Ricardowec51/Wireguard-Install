@@ -1,0 +1,129 @@
+#!/bin/bash
+set -euo pipefail
+
+if [ -z "$1" ]; then
+  echo "Uso: $0 nombre_del_cliente / Usage: $0 client_name"
+  exit 1
+fi
+
+CLIENT_NAME=$1
+CLIENT_DIR="/etc/wireguard/clients"
+mkdir -p "$CLIENT_DIR"
+chmod 700 "$CLIENT_DIR"
+
+echo "Agregando cliente: $CLIENT_NAME / Adding client: $CLIENT_NAME"
+
+# Cargar información del servidor
+if [ -f /etc/wireguard/server_info.conf ]; then
+  source /etc/wireguard/server_info.conf
+else
+  echo "No se encontró /etc/wireguard/server_info.conf. Ejecuta primero el script de instalación del servidor. / /etc/wireguard/server_info.conf not found. Please run the server installation script first."
+  exit 1
+fi
+
+# Generar claves del cliente con permisos restringidos
+umask 077
+CLIENT_PRIV_KEY=$(wg genkey)
+CLIENT_PUB_KEY=$(echo "$CLIENT_PRIV_KEY" | wg pubkey)
+
+# Asignar IP al cliente de forma dinámica
+IP_FILE="$CLIENT_DIR/last_ip"
+if [ -f "$IP_FILE" ]; then
+  LAST_IP=$(cat "$IP_FILE")
+else
+  LAST_IP="10.0.0.1"  # IP del servidor
+fi
+
+IFS='.' read -r o1 o2 o3 o4 <<< "$LAST_IP"
+NEW_OCTET=$((o4 + 1))
+if [ "$NEW_OCTET" -ge 255 ]; then
+  echo "No hay IPs disponibles en la subred. / No available IPs in the subnet."
+  exit 1
+fi
+CLIENT_IP="10.0.0.$NEW_OCTET/32"
+echo "10.0.0.$NEW_OCTET" > "$IP_FILE"
+
+# Función para validar formato de IPv4
+validar_ip() {
+  local ip=$1
+  if [[ ! $ip =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
+    return 1
+  fi
+  IFS='.' read -r a b c d <<< "$ip"
+  for octeto in "$a" "$b" "$c" "$d"; do
+    if (( octeto < 0 || octeto > 255 )); then
+      return 1
+    fi
+  done
+  return 0
+}
+
+# Función para validar notación CIDR (IPv4/máscara)
+validar_cidr() {
+  local cidr=$1
+  if [[ ! $cidr =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}\/([0-9]{1,2})$ ]]; then
+    return 1
+  fi
+  IFS='/' read -r ip mask <<< "$cidr"
+  validar_ip "$ip" || return 1
+  if (( mask < 0 || mask > 32 )); then
+    return 1
+  fi
+  return 0
+}
+
+echo -e "\n\n"
+# Prompt bilingüe: "Ingrese las AllowedIPs para el cliente (AllowedIPs in CIDR) [0.0.0.0/0]:"
+DEFAULT_ALLOWED_IP="0.0.0.0/0"
+while true; do
+  read -p "Ingrese las AllowedIPs para el cliente (AllowedIPs in CIDR) [${DEFAULT_ALLOWED_IP}]: " input_cidr
+  ALLOWED_IPS="${input_cidr:-$DEFAULT_ALLOWED_IP}"
+  if validar_cidr "$ALLOWED_IPS"; then
+    break
+  else
+    echo "Formato de AllowedIPs inválido. Ej: 0.0.0.0/0 o 192.168.1.0/24. / Invalid format. E.g.: 0.0.0.0/0 or 192.168.1.0/24."
+  fi
+done
+
+echo -e "\n\n"
+# Prompt bilingüe: "Ingrese el DNS para el cliente (Enter the client's DNS) [1.1.1.1]:"
+read -p "Ingrese el DNS para el cliente (Enter the client's DNS) [1.1.1.1]: " input_dns
+CLIENT_DNS="${input_dns:-1.1.1.1}"
+
+# Crear el archivo de configuración del cliente
+CLIENT_CONF="$CLIENT_DIR/${CLIENT_NAME}.conf"
+
+cat <<EOF > "$CLIENT_CONF"
+[Interface]
+PrivateKey = $CLIENT_PRIV_KEY
+Address = ${CLIENT_IP}
+DNS = ${CLIENT_DNS}
+
+[Peer]
+PublicKey = $SERVER_PUB_KEY
+Endpoint = ${WG_PUBLIC_IP}:${WG_LISTEN_PORT}
+AllowedIPs = ${ALLOWED_IPS}
+EOF
+
+# Agregar la configuración del cliente en el servidor
+SERVER_CONF="/etc/wireguard/wg0.conf"
+cat <<EOF >> "$SERVER_CONF"
+
+[Peer]
+# Cliente: $CLIENT_NAME
+PublicKey = $CLIENT_PUB_KEY
+AllowedIPs = ${CLIENT_IP%/32}/32
+EOF
+
+# Agregar el peer en caliente sin reiniciar la interfaz
+wg set wg0 peer "$CLIENT_PUB_KEY" allowed-ips "${CLIENT_IP%/32}/32"
+
+echo "Configuración para el cliente '$CLIENT_NAME' creada en: $CLIENT_CONF"
+echo "Código QR para la configuración:"
+qrencode -t ansiutf8 < "$CLIENT_CONF"
+
+echo -e "\n---"
+echo "Recordatorio / Reminder:"
+echo "ES: Recuerda configurar tu router para redirigir el puerto de escucha ($WG_LISTEN_PORT) a la IP interna de tu servidor, asegurándote de que la IP pública ($WG_PUBLIC_IP) sea accesible desde Internet. Además, verifica las rutas y reglas del firewall para permitir el tráfico hacia tu servidor Wireguard."
+echo "EN: Remember to configure your router to forward the listening port ($WG_LISTEN_PORT) to your server's internal IP and ensure that the public IP ($WG_PUBLIC_IP) is accessible from the Internet. Also, verify that routing and firewall rules allow traffic to your Wireguard server."
+echo -e "---\n"
