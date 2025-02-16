@@ -125,6 +125,10 @@ EOF
 wg set wg0 peer "$CLIENT_PUB_KEY" allowed-ips "${CLIENT_IP%/32}/32"
 
 echo "Configuración para el cliente '$CLIENT_NAME' creada en: $CLIENT_CONF"
+
+echo -e "\n--- CONFIGURACIÓN DEL CLIENTE / CLIENT CONFIGURATION ---\n"
+cat "$CLIENT_CONF"
+echo -e "\n--- END OF CONFIGURATION ---\n"
 echo "Código QR para la configuración:"
 qrencode -t ansiutf8 < "$CLIENT_CONF"
 
