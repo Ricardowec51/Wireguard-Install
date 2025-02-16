@@ -1,6 +1,6 @@
 # Wireguard-Install
 
-I've had so many headaches when trying to install Wireguard Server and clients, so I decided to make it myself by using the stock Wireguard app starting from Ubuntu 22.04 and a couple of scripts to download.
+I've had so many headaches when trying to install Wireguard Server and clients, so I decided to make it myself by using the stock Wireguard app starting from Ubuntu 22.04 and a couple of scripts to download. The scripts are interactive and will ask for all nescessary information
 
 ## SERVER INSTALL
 
