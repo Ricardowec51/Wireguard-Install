@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-if [ -z "$1" ]; then
+if [ -z "${1:-}" ]; then
   echo "Uso: $0 nombre_del_cliente / Usage: $0 client_name"
   exit 1
 fi
