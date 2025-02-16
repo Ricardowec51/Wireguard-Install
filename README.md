@@ -6,8 +6,7 @@ SERVER INSTALL
 
 Run this script in your Ubuntu ( 22.04 and up ) that is to be your server
 
-curl -o install_wireguard.sh https://raw.githubusercontent.com/Ricardowec51/Wireguard-Install/refs/heads/main/Wireguard%20Install/Script%20para%20Instalacion%20de%20Servidor%20WIREGUARD
-chmod +x install_wireguard.sh
+curl -o install_wireguard.sh "https://raw.githubusercontent.com/Ricardowec51/Wireguard-Install/refs/heads/main/Wireguard%20Install/Script%20para%20Instalacion%20de%20Servidor%20WIREGUARD" && chmod +x install_wireguard.sh && sudo ./install_wireguard.sh
 
 CLIENTS CONFIGURATION
 
