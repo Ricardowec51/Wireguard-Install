@@ -13,4 +13,4 @@ curl -o install_wireguard.sh "https://raw.githubusercontent.com/Ricardowec51/Wir
 
 Run this script in the same server every time you need to add a client. It will generate the conf file
 
-curl -o add_client.sh "https://raw.githubusercontent.com/Ricardowec51/Wireguard-Install/refs/heads/main/Wireguard%20Install/Script%20para%20instalacion%20de%20Clientes%20de%20Wireguards" && chmod +x add_client.sh
+curl -o add_client.sh "https://raw.githubusercontent.com/Ricardowec51/Wireguard-Install/refs/heads/main/Wireguard%20Install/Script%20para%20instalacion%20de%20Clientes%20de%20Wireguards" && chmod +x add_client.sh && sudo ./add_client.sh
