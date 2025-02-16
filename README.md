@@ -9,4 +9,9 @@ Run this script on your Ubuntu (22.04 and up) that is to be your server:
 ```bash
 curl -o install_wireguard.sh "https://raw.githubusercontent.com/Ricardowec51/Wireguard-Install/refs/heads/main/Wireguard%20Install/Script%20para%20Instalacion%20de%20Servidor%20WIREGUARD" && chmod +x install_wireguard.shCLIENTS CONFIGURATION
 
+## CLIENT INSTALL
+
+Run this script in the same server every time you need to add a client. It will generate the conf file
+
+····bash
 curl -o add_client.sh "https://raw.githubusercontent.com/Ricardowec51/Wireguard-Install/refs/heads/main/Wireguard%20Install/Script%20para%20instalacion%20de%20Clientes%20de%20Wireguards" && chmod +x add_client.sh
